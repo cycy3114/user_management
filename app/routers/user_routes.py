@@ -170,11 +170,12 @@ async def list_users(
     request: Request,
     skip: int = 0,
     limit: int = 10,
+    is_professional: bool = False,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
     total_users = await UserService.count(db)
-    users = await UserService.list_users(db, skip, limit)
+    users = await UserService.list_users(db, skip, limit, is_professional=is_professional)
 
     user_responses = [
         UserResponse.model_validate(user) for user in users
@@ -238,10 +239,55 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Async
 async def verify_email(user_id: UUID, token: str, db: AsyncSession = Depends(get_db), email_service: EmailService = Depends(get_email_service)):
     """
     Verify user's email with a provided token.
-    
+
     - **user_id**: UUID of the user to verify.
     - **token**: Verification token sent to the user's email.
     """
     if await UserService.verify_email_with_token(db, user_id, token):
         return {"message": "Email verified successfully"}
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
+
+@router.get("/search/", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
+async def search_users(
+    request: Request,
+    user_id: UUID = None,
+    email: str = None,
+    nickname: str = None,
+    role: str = None,
+    first_name: str = None,
+    last_name: str = None,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    if user_id:
+        user = await UserService.get_by_id(db, user_id)
+    elif email:
+        user = await UserService.get_by_email(db, email)
+    elif nickname:
+        user = await UserService.get_by_nickname(db, nickname)
+    elif role:
+        user = await UserService.get_by_role(db, role)
+    elif first_name:
+        user = await UserService.get_by_first_name(db, first_name)
+    elif last_name:
+        user = await UserService.get_by_last_name(db, last_name)
+
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return UserResponse.model_construct(
+        id=user.id,
+        nickname=user.nickname,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        bio=user.bio,
+        profile_picture_url=user.profile_picture_url,
+        github_profile_url=user.github_profile_url,
+        linkedin_profile_url=user.linkedin_profile_url,
+        role=user.role,
+        email=user.email,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        links=create_user_links(user.id, request)
+    )
