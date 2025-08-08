@@ -49,6 +49,18 @@ class UserService:
     async def get_by_email(cls, session: AsyncSession, email: str) -> Optional[User]:
         return await cls._fetch_user(session, email=email)
 
+   @classmethod
+    async def get_by_role(cls, session: AsyncSession, role: str) -> Optional[User]:
+        return await cls._fetch_user(session, role=UserRole(role))
+
+    @classmethod
+    async def get_by_first_name(cls, session: AsyncSession, first_name: str) -> Optional[User]:
+        return await cls._fetch_user(session, first_name=first_name)
+
+    @classmethod
+    async def get_by_last_name(cls, session: AsyncSession, last_name: str) -> Optional[User]:
+        return await cls._fetch_user(session, last_name=last_name)
+
     @classmethod
     async def create(cls, session: AsyncSession, user_data: Dict[str, str], email_service: EmailService) -> Optional[User]:
         try:
@@ -113,8 +125,8 @@ class UserService:
         return True
 
     @classmethod
-    async def list_users(cls, session: AsyncSession, skip: int = 0, limit: int = 10) -> List[User]:
-        query = select(User).offset(skip).limit(limit)
+    async def list_users(cls, session: AsyncSession, skip: int = 0, limit: int = 10, **filters) -> List[User]:
+        query = select(User).filter_by(**filters).offset(skip).limit(limit)
         result = await cls._execute_query(session, query)
         return result.scalars().all() if result else []
 
