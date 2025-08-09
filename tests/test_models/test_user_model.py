@@ -178,3 +178,25 @@ async def test_update_user_role(db_session: AsyncSession, user: User):
     await db_session.commit()
     await db_session.refresh(user)
     assert user.role == UserRole.ADMIN, "Role update should persist correctly in the database"
+
+@pytest.mark.asyncio
+async def test_update_user_email(db_session: AsyncSession, user: User):
+    """
+    Tests updating the user's email and ensuring it persists correctly.
+    """
+    new_email = "new_email@example.com"
+    user.email = new_email
+    await db_session.commit()
+    await db_session.refresh(user)
+    assert user.email == new_email, "Email update should persist correctly in the database"
+
+@pytest.mark.asyncio
+async def test_update_user_nickname(db_session: AsyncSession, user: User):
+    """
+    Tests updating the user's nickname and ensuring it persists correctly.
+    """
+    new_nickname = "kong_fu_panda"
+    user.nickname = new_nickname
+    await db_session.commit()
+    await db_session.refresh(user)
+    assert user.nickname == new_nickname, "Nickname update should persist correctly in the database"
