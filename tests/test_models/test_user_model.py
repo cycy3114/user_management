@@ -12,6 +12,45 @@ async def test_user_role(db_session: AsyncSession, user: User, admin_user: User,
     assert user.role == UserRole.AUTHENTICATED, "Default role should be USER"
     assert admin_user.role == UserRole.ADMIN, "Admin role should be correctly assigned"
     assert manager_user.role == UserRole.MANAGER, "Pro role should be correctly assigned"
+@pytest.mark.asyncio
+async def test_user_nickname(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that nickname is assigned correctly.
+    """
+    assert admin_user.nickname == "admin_user", "Admin user's nickname should be correctly assigned"
+    assert manager_user.nickname == "manager_john", "Manager user's nickname should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_email(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that email is assigned correctly.
+    """
+    assert admin_user.email == "admin@example.com", "Admin user's email should be correctly assigned"
+    assert manager_user.email == "manager_user@example.com", "Manager user's email should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_first_name(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that first name is assigned correctly.
+    """
+    assert admin_user.first_name == "John", "Admin user's first name should be correctly assigned"
+    assert manager_user.first_name == "John", "Manager user's first name should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_last_name(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that last name is assigned correctly.
+    """
+    assert admin_user.last_name == "Doe", "Admin user's last name should be correctly assigned"
+    assert manager_user.last_name == "Doe", "Manager user's last name should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_password(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that password is assigned correctly.
+    """
+    assert admin_user.hashed_password == "securepassword", "Admin user's hashed password should be correctly assigned"
+    assert manager_user.hashed_password == "securepassword", "Manager user's hashed password should be correctly assigned"
 
 @pytest.mark.asyncio
 async def test_has_role(user: User, admin_user: User, manager_user: User):
