@@ -61,6 +61,36 @@ async def test_get_by_email_user_does_not_exist(db_session):
     retrieved_user = await UserService.get_by_email(db_session, "non_existent_email@example.com")
     assert retrieved_user is None
 
+# Test fetching users by role when the role exists
+async def test_get_by_role_exists(db_session, user):
+    users = await UserService.get_by_role(db_session, user.role.value)
+    assert any(u.id == user.id for u in users)
+
+# Test fetching users by role when the role does not exist
+async def test_get_by_role_not_exists(db_session):
+    users = await UserService.get_by_role(db_session, "NON_EXISTENT_ROLE")
+    assert users == []
+
+# Test fetching users by first name when the user exists
+async def test_get_by_first_name_exists(db_session, user):
+    users = await UserService.get_by_first_name(db_session, user.first_name)
+    assert any(u.id == user.id for u in users)
+
+# Test fetching users by first name when the user does not exist
+async def test_get_by_first_name_not_exists(db_session):
+    users = await UserService.get_by_first_name(db_session, "NonExistentFirstName")
+    assert users == []
+
+# Test fetching users by last name when the user exists
+async def test_get_by_last_name_exists(db_session, user):
+    users = await UserService.get_by_last_name(db_session, user.last_name)
+    assert any(u.id == user.id for u in users)
+
+# Test fetching users by last name when the user does not exist
+async def test_get_by_last_name_not_exists(db_session):
+    users = await UserService.get_by_last_name(db_session, "NonExistentLastName")
+    assert users == []
+
 # Test updating a user with valid data
 async def test_update_user_valid_data(db_session, user):
     new_email = "updated_email@example.com"
@@ -91,6 +121,48 @@ async def test_list_users_with_pagination(db_session, users_with_same_role_50_us
     assert len(users_page_1) == 10
     assert len(users_page_2) == 10
     assert users_page_1[0].id != users_page_2[0].id
+
+# Test listing users filtered by is_professional
+async def test_list_users_with_is_professional_filter(db_session, users_with_same_role_50_users):
+    # Assume at least one user is professional in the fixture
+    users = await UserService.list_users(db_session, skip=0, limit=50, is_professional=True)
+    assert all(getattr(user, "is_professional", False) for user in users)
+
+# Test listing users filtered by registration_start_date and registration_end_date
+async def test_list_users_with_registration_date_range(db_session, users_with_same_role_50_users):
+    from datetime import date, timedelta
+
+    # Assume users_with_same_role_50_users fixture sets registration dates
+    start_date = date.today() - timedelta(days=30)
+    end_date = date.today()
+    users = await UserService.list_users(
+        db_session,
+        skip=0,
+        limit=50,
+        registration_start_date=start_date,
+        registration_end_date=end_date,
+    )
+    for user in users:
+        assert start_date <= user.created_at.date() <= end_date
+
+# Test listing users with all filters combined
+async def test_list_users_with_all_filters(db_session, users_with_same_role_50_users):
+    from datetime import date, timedelta
+
+    start_date = date.today() - timedelta(days=30)
+    end_date = date.today()
+    users = await UserService.list_users(
+        db_session,
+        skip=0,
+        limit=50,
+        is_professional=True,
+        registration_start_date=start_date,
+        registration_end_date=end_date,
+    )
+    for user in users:
+        assert getattr(user, "is_professional", False)
+        assert start_date <= user.created_at.date() <= end_date
+
 
 # Test registering a user with valid data
 async def test_register_user_with_valid_data(db_session, email_service):
