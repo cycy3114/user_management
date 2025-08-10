@@ -291,3 +291,117 @@ async def search_users(
         updated_at=user.updated_at,
         links=create_user_links(user.id, request)
     )
+
+@router.get("/search/email/{email}", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
+async def search_users_by_email(
+    email: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    user = await UserService.get_by_email(db, email)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+@@ -292,3 +304,95 @@ async def search_users(
+        updated_at=user.updated_at,
+        links=create_user_links(user.id, request)
+    )
+
+
+@router.get("/search/nickname/{nickname}", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
+async def search_users_by_nickname(
+    nickname: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    user = await UserService.get_by_nickname(db, nickname)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    return UserResponse.model_construct(
+        id=user.id,
+        nickname=user.nickname,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        bio=user.bio,
+        profile_picture_url=user.profile_picture_url,
+        github_profile_url=user.github_profile_url,
+        linkedin_profile_url=user.linkedin_profile_url,
+        role=user.role,
+        email=user.email,
+        last_login_at=user.last_login_at,
+        created_at=user.created_at,
+        updated_at=user.updated_at,
+        links=create_user_links(user.id, request)
+    )
+
+
+@router.get("/search/role/{role}", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
+async def search_users_by_role(
+    role: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    users = await UserService.get_by_role(db, role)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user_responses = [
+        UserResponse.model_validate(user) for user in users
+    ]
+
+    # Construct the final response with pagination details
+    return UserListResponse(
+        items=user_responses,
+        total=len(user_responses),
+        page=1,
+        size=len(user_responses),
+    )
+
+
+@router.get("/search/first_name/{first_name}", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
+async def search_users_by_first_name(
+    first_name: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    users = await UserService.get_by_first_name(db, first_name)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user_responses = [
+        UserResponse.model_validate(user) for user in users
+    ]
+
+    # Construct the final response with pagination details
+    return UserListResponse(
+        items=user_responses,
+        total=len(user_responses),
+        page=1,
+        size=len(user_responses),
+    )
+
+
+@router.get("/search/last_name/{last_name}", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
+async def search_users_by_last_name(
+    last_name: str,
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
+):
+    users = await UserService.get_by_last_name(db, last_name)
+    if not users:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    user_responses = [
+        UserResponse.model_validate(user) for user in users
+    ]
+
+    # Construct the final response with pagination details
+    return UserListResponse(
+        items=user_responses,
+        total=len(user_responses),
+        page=1,
+        size=len(user_responses),
+    )

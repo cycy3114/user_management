@@ -42,6 +42,21 @@ class UserService:
         return await cls._fetch_user(session, id=user_id)
 
     @classmethod
+
+    async def get_by_role(cls, session: AsyncSession, role: str) -> List[User]:
+        if role not in UserRole.__members__:
+            return []
+        return await cls._fetch_user_all(session, role=UserRole(role))
+
+    @classmethod
+    async def get_by_first_name(cls, session: AsyncSession, first_name: str) -> List[User]:
+        return await cls._fetch_user_all(session, first_name=first_name)
+
+    @classmethod
+    async def get_by_last_name(cls, session: AsyncSession, last_name: str) -> List[User]:
+        return await cls._fetch_user_all(session, last_name=last_name)
+
+    @classmethod
     async def get_by_nickname(cls, session: AsyncSession, nickname: str) -> Optional[User]:
         return await cls._fetch_user(session, nickname=nickname)
 
