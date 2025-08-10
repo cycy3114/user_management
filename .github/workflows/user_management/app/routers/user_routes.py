@@ -19,10 +19,9 @@ Key Highlights:
 """
 
 from builtins import dict, int, len, str
-from datetime import date, timedelta
+from datetime import timedelta
 from uuid import UUID
-from typing import Any
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Request, Query
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, get_db, get_email_service, require_role
@@ -171,22 +170,11 @@ async def list_users(
     request: Request,
     skip: int = 0,
     limit: int = 10,
-    is_professional: bool = Query(None, description="Pro account status filter"),
-    registration_start_date: date = Query(None, description="Start date for registration filter"),
-    registration_end_date: date = Query(None, description="End date for registration filter"),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
-    filters: dict[str, Any] = {}
-    if is_professional is not None:
-        filters["is_professional"] = is_professional
-    if registration_start_date is not None:
-        filters["registration_start_date"] = registration_start_date
-    if registration_end_date is not None:
-        filters["registration_end_date"] = registration_end_date
-
-    total_users = await UserService.count(db, **filters)
-    users = await UserService.list_users(db, skip, limit, **filters)
+    total_users = await UserService.count(db)
+    users = await UserService.list_users(db, skip, limit)
 
     user_responses = [
         UserResponse.model_validate(user) for user in users
@@ -250,147 +238,10 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), session: Async
 async def verify_email(user_id: UUID, token: str, db: AsyncSession = Depends(get_db), email_service: EmailService = Depends(get_email_service)):
     """
     Verify user's email with a provided token.
-
+    
     - **user_id**: UUID of the user to verify.
     - **token**: Verification token sent to the user's email.
     """
     if await UserService.verify_email_with_token(db, user_id, token):
         return {"message": "Email verified successfully"}
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
-
-@router.get("/search/user_id/{user_id}", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
-async def search_users_by_id(
-    request: Request,
-    user_id: UUID,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
-):
-    user = await UserService.get_by_id(db, user_id)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    return UserResponse.model_construct(
-        id=user.id,
-        nickname=user.nickname,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        bio=user.bio,
-        profile_picture_url=user.profile_picture_url,
-        github_profile_url=user.github_profile_url,
-        linkedin_profile_url=user.linkedin_profile_url,
-        role=user.role,
-        email=user.email,
-        last_login_at=user.last_login_at,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-        links=create_user_links(user.id, request)
-    )
-
-@router.get("/search/email/{email}", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
-async def search_users_by_email(
-    email: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
-):
-    user = await UserService.get_by_email(db, email)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-
-@router.get("/search/nickname/{nickname}", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
-async def search_users_by_nickname(
-    nickname: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
-):
-    user = await UserService.get_by_nickname(db, nickname)
-    if not user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-    return UserResponse.model_construct(
-        id=user.id,
-        nickname=user.nickname,
-        first_name=user.first_name,
-        last_name=user.last_name,
-        bio=user.bio,
-        profile_picture_url=user.profile_picture_url,
-        github_profile_url=user.github_profile_url,
-        linkedin_profile_url=user.linkedin_profile_url,
-        role=user.role,
-        email=user.email,
-        last_login_at=user.last_login_at,
-        created_at=user.created_at,
-        updated_at=user.updated_at,
-        links=create_user_links(user.id, request)
-    )
-
-
-@router.get("/search/role/{role}", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
-async def search_users_by_role(
-    role: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
-):
-    users = await UserService.get_by_role(db, role)
-    if not users:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    user_responses = [
-        UserResponse.model_validate(user) for user in users
-    ]
-
-    # Construct the final response with pagination details
-    return UserListResponse(
-        items=user_responses,
-        total=len(user_responses),
-        page=1,
-        size=len(user_responses),
-    )
-
-
-@router.get("/search/first_name/{first_name}", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
-async def search_users_by_first_name(
-    first_name: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
-):
-    users = await UserService.get_by_first_name(db, first_name)
-    if not users:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    user_responses = [
-        UserResponse.model_validate(user) for user in users
-    ]
-
-    # Construct the final response with pagination details
-    return UserListResponse(
-        items=user_responses,
-        total=len(user_responses),
-        page=1,
-        size=len(user_responses),
-    )
-
-
-@router.get("/search/last_name/{last_name}", response_model=UserListResponse, tags=["User Management Requires (Admin or Manager Roles)"])
-async def search_users_by_last_name(
-    last_name: str,
-    request: Request,
-    db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
-):
-    users = await UserService.get_by_last_name(db, last_name)
-    if not users:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    user_responses = [
-        UserResponse.model_validate(user) for user in users
-    ]
-
-    # Construct the final response with pagination details
-    return UserListResponse(
-        items=user_responses,
-        total=len(user_responses),
-        page=1,
-        size=len(user_responses),
-    )

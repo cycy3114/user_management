@@ -191,3 +191,158 @@ async def test_list_users_unauthorized(async_client, user_token):
     )
     assert response.status_code == 403  # Forbidden, as expected for regular user
 
+@pytest.mark.asyncio
+async def test_list_users_as_admin_with_professional_filter(async_client, admin_token):
+    response = await async_client.get(
+        "/users/?is_professional=false",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) > 0  # Ensure some users are returned
+
+    response = await async_client.get(
+        "/users/?is_professional=true",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) == 0  # Ensure no users are returned
+
+@pytest.mark.asyncio
+async def test_list_users_as_admin_with_registration_date_range_filters(async_client, admin_token):
+    response = await async_client.get(
+        "/users/?registration_start_date=2025-08-01&registration_end_date=2100-08-01",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) > 0  # Ensure some users are returned
+
+    # Test with a future start date that should return no users
+    response = await async_client.get(
+        "/users/?registration_start_date=2100-08-01",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) == 0  # Ensure no users are returned
+
+    # Test with a past end date that should return no users
+    response = await async_client.get(
+        "/users/?registration_end_date=2000-01-01",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) == 0  # Ensure no users are returned
+
+    # Test with start date > end date that should return no users
+    response = await async_client.get(
+        "/users/?registration_start_date=2100-08-01&registration_end_date=2025-08-01",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) == 0  # Ensure no users are returned
+
+@pytest.mark.asyncio
+async def test_search_user_by_id(async_client, admin_token, user):
+    response = await async_client.get(
+        f"/search/user_id/{user.id}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert "id" in response.json()
+    assert "email" in response.json()
+    assert "nickname" in response.json()
+    assert response.json()["id"]== str(user.id)
+    assert response.json()["email"] == user.email
+    assert response.json()["nickname"] == user.nickname
+
+@pytest.mark.asyncio
+async def test_search_user_by_email(async_client, admin_token, user):
+    response = await async_client.get(
+        f"/search/email/{user.email}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert "email" in response.json()
+    assert response.json()["email"] == user.email
+
+    response = await async_client.get(
+        "/search/email/NONEXISTENTEMAIL",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_search_user_by_nickname(async_client, admin_token, user):
+    response = await async_client.get(
+        f"/search/nickname/{user.nickname}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert "nickname" in response.json()
+    assert response.json()["nickname"] == user.nickname
+
+    # Test with a non-existent nickname
+    response = await async_client.get(
+        "/search/nickname/NONEXISTENTNICKNAME",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_search_user_by_role(async_client, admin_token, user):
+    response = await async_client.get(
+        f"/search/role/{user.role.name}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) > 0  # Ensure some users are returned
+    assert response.json()['items'][0]['role'] == user.role.value
+
+    # Test with a non existent role that has no users
+    response = await async_client.get(
+        "/search/role/NONEXISTENTROLE",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_search_user_by_first_name(async_client, admin_token, user):
+    response = await async_client.get(
+        f"/search/first_name/{user.first_name}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) > 0  # Ensure some users are returned
+    assert response.json()['items'][0]['first_name'] == user.first_name
+
+    # Test with a non existent first name that has no users
+    response = await async_client.get(
+        "/search/first_name/NONEXISTENTFIRSTNAME",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 404
+
+@pytest.mark.asyncio
+async def test_search_user_by_last_name(async_client, admin_token, user):
+    response = await async_client.get(
+        f"/search/last_name/{user.last_name}",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 200
+    assert 'items' in response.json()
+    assert len(response.json()['items']) > 0  # Ensure some users are returned
+    assert response.json()['items'][0]['last_name'] == user.last_name
+
+    # Test with a non existent last name that has no users
+    response = await async_client.get(
+        "/search/last_name/NONEXISTENTLASTNAME",
+        headers={"Authorization": f"Bearer {admin_token}"}
+    )
+    assert response.status_code == 404
