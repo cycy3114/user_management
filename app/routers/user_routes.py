@@ -247,31 +247,14 @@ async def verify_email(user_id: UUID, token: str, db: AsyncSession = Depends(get
         return {"message": "Email verified successfully"}
     raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid or expired verification token")
 
-@router.get("/search/", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
-async def search_users(
+@router.get("/search/user_id/{user_id}", response_model=UserResponse, tags=["User Management Requires (Admin or Manager Roles)"])
+async def search_users_by_id(
     request: Request,
-    user_id: UUID = None,
-    email: str = None,
-    nickname: str = None,
-    role: str = None,
-    first_name: str = None,
-    last_name: str = None,
+    user_id: UUID,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
-    if user_id:
-        user = await UserService.get_by_id(db, user_id)
-    elif email:
-        user = await UserService.get_by_email(db, email)
-    elif nickname:
-        user = await UserService.get_by_nickname(db, nickname)
-    elif role:
-        user = await UserService.get_by_role(db, role)
-    elif first_name:
-        user = await UserService.get_by_first_name(db, first_name)
-    elif last_name:
-        user = await UserService.get_by_last_name(db, last_name)
-
+    user = await UserService.get_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
