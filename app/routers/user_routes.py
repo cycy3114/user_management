@@ -177,7 +177,7 @@ async def list_users(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
-        filters: dict[str, Any] = {}
+    filters: dict[str, Any] = {}
     if is_professional is not None:
         filters["is_professional"] = is_professional
     if registration_start_date is not None:
