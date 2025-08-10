@@ -19,9 +19,10 @@ Key Highlights:
 """
 
 from builtins import dict, int, len, str
-from datetime import timedelta
+from datetime import date, timedelta
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Response, status, Request
+from typing import Any
+from fastapi import APIRouter, Depends, HTTPException, Response, status, Request, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies import get_current_user, get_db, get_email_service, require_role
@@ -170,12 +171,22 @@ async def list_users(
     request: Request,
     skip: int = 0,
     limit: int = 10,
-    is_professional: bool = False,
+    is_professional: bool = Query(None, description="Pro account status filter"),
+    registration_start_date: date = Query(None, description="Start date for registration filter"),
+    registration_end_date: date = Query(None, description="End date for registration filter"),
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(require_role(["ADMIN", "MANAGER"]))
 ):
-    total_users = await UserService.count(db)
-    users = await UserService.list_users(db, skip, limit, is_professional=is_professional)
+        filters: dict[str, Any] = {}
+    if is_professional is not None:
+        filters["is_professional"] = is_professional
+    if registration_start_date is not None:
+        filters["registration_start_date"] = registration_start_date
+    if registration_end_date is not None:
+        filters["registration_end_date"] = registration_end_date
+
+    total_users = await UserService.count(db, **filters)
+    users = await UserService.list_users(db, skip, limit, **filters)
 
     user_responses = [
         UserResponse.model_validate(user) for user in users
