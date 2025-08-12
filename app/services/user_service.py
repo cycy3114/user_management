@@ -50,6 +50,8 @@ class UserService:
 
     @classmethod
     async def get_by_role(cls, session: AsyncSession, role: str) -> List[User]:
+        if role not in UserRole.__members__:
+            return []
         return await cls._fetch_user_all(session, role=UserRole(role))
 
     @classmethod
@@ -67,18 +69,6 @@ class UserService:
     @classmethod
     async def get_by_email(cls, session: AsyncSession, email: str) -> Optional[User]:
         return await cls._fetch_user(session, email=email)
-
-    @classmethod
-    async def get_by_role(cls, session: AsyncSession, role: str) -> Optional[User]:
-        return await cls._fetch_user(session, role=UserRole(role))
-
-    @classmethod
-    async def get_by_first_name(cls, session: AsyncSession, first_name: str) -> Optional[User]:
-        return await cls._fetch_user(session, first_name=first_name)
-
-    @classmethod
-    async def get_by_last_name(cls, session: AsyncSession, last_name: str) -> Optional[User]:
-        return await cls._fetch_user(session, last_name=last_name)
 
     @classmethod
     async def create(cls, session: AsyncSession, user_data: Dict[str, str], email_service: EmailService) -> Optional[User]:
