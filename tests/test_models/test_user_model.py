@@ -12,6 +12,45 @@ async def test_user_role(db_session: AsyncSession, user: User, admin_user: User,
     assert user.role == UserRole.AUTHENTICATED, "Default role should be USER"
     assert admin_user.role == UserRole.ADMIN, "Admin role should be correctly assigned"
     assert manager_user.role == UserRole.MANAGER, "Pro role should be correctly assigned"
+@pytest.mark.asyncio
+async def test_user_nickname(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that nickname is assigned correctly.
+    """
+    assert admin_user.nickname == "admin_user", "Admin user's nickname should be correctly assigned"
+    assert manager_user.nickname == "manager_john", "Manager user's nickname should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_email(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that email is assigned correctly.
+    """
+    assert admin_user.email == "admin@example.com", "Admin user's email should be correctly assigned"
+    assert manager_user.email == "manager_user@example.com", "Manager user's email should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_first_name(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that first name is assigned correctly.
+    """
+    assert admin_user.first_name == "John", "Admin user's first name should be correctly assigned"
+    assert manager_user.first_name == "John", "Manager user's first name should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_last_name(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that last name is assigned correctly.
+    """
+    assert admin_user.last_name == "Doe", "Admin user's last name should be correctly assigned"
+    assert manager_user.last_name == "Doe", "Manager user's last name should be correctly assigned"
+
+@pytest.mark.asyncio
+async def test_user_password(db_session: AsyncSession, admin_user: User, manager_user: User):
+    """
+    Tests that password is assigned correctly.
+    """
+    assert admin_user.hashed_password == "securepassword", "Admin user's hashed password should be correctly assigned"
+    assert manager_user.hashed_password == "securepassword", "Manager user's hashed password should be correctly assigned"
 
 @pytest.mark.asyncio
 async def test_has_role(user: User, admin_user: User, manager_user: User):
@@ -139,3 +178,58 @@ async def test_update_user_role(db_session: AsyncSession, user: User):
     await db_session.commit()
     await db_session.refresh(user)
     assert user.role == UserRole.ADMIN, "Role update should persist correctly in the database"
+
+@pytest.mark.asyncio
+async def test_update_user_email(db_session: AsyncSession, user: User):
+    """
+    Tests updating the user's email and ensuring it persists correctly.
+    """
+    new_email = "new_email@example.com"
+    user.email = new_email
+    await db_session.commit()
+    await db_session.refresh(user)
+    assert user.email == new_email, "Email update should persist correctly in the database"
+
+@pytest.mark.asyncio
+async def test_update_user_nickname(db_session: AsyncSession, user: User):
+    """
+    Tests updating the user's nickname and ensuring it persists correctly.
+    """
+    new_nickname = "kong_fu_panda"
+    user.nickname = new_nickname
+    await db_session.commit()
+    await db_session.refresh(user)
+    assert user.nickname == new_nickname, "Nickname update should persist correctly in the database"
+
+@pytest.mark.asyncio
+async def test_update_user_first_name(db_session: AsyncSession, user: User):
+    """
+    Tests updating the user's first name and ensuring it persists correctly.
+    """
+    new_first_name = "Jackie"
+    user.first_name = new_first_name
+    await db_session.commit()
+    await db_session.refresh(user)
+    assert user.first_name == new_first_name, "First name update should persist correctly in the database"
+
+@pytest.mark.asyncio
+async def test_update_user_last_name(db_session: AsyncSession, user: User):
+    """
+    Tests updating the user's last name and ensuring it persists correctly.
+    """
+    new_last_name = "Chan"
+    user.last_name = new_last_name
+    await db_session.commit()
+    await db_session.refresh(user)
+    assert user.last_name == new_last_name, "Last name update should persist correctly in the database"
+
+@pytest.mark.asyncio
+async def test_update_user_password(db_session: AsyncSession, admin_user: User):
+    """
+    Tests updating the user's password and ensuring it persists correctly.
+    """
+    new_password = "new_securepassword"
+    admin_user.hashed_password = new_password
+    await db_session.commit()
+    await db_session.refresh(admin_user)
+    assert admin_user.hashed_password == new_password, "Password update should persist correctly in the database"

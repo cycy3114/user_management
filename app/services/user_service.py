@@ -38,8 +38,29 @@ class UserService:
         return result.scalars().first() if result else None
 
     @classmethod
+    async def _fetch_user_all(cls, session: AsyncSession, **filters) -> List[User]:
+        query = select(User).filter_by(**filters)
+        result = await cls._execute_query(session, query)
+        return result.scalars().all() if result else None
+
+
+    @classmethod
     async def get_by_id(cls, session: AsyncSession, user_id: UUID) -> Optional[User]:
         return await cls._fetch_user(session, id=user_id)
+
+    @classmethod
+    async def get_by_role(cls, session: AsyncSession, role: str) -> List[User]:
+        if role not in UserRole.__members__:
+            return []
+        return await cls._fetch_user_all(session, role=UserRole(role))
+
+    @classmethod
+    async def get_by_first_name(cls, session: AsyncSession, first_name: str) -> List[User]:
+        return await cls._fetch_user_all(session, first_name=first_name)
+
+    @classmethod
+    async def get_by_last_name(cls, session: AsyncSession, last_name: str) -> List[User]:
+        return await cls._fetch_user_all(session, last_name=last_name)
 
     @classmethod
     async def get_by_nickname(cls, session: AsyncSession, nickname: str) -> Optional[User]:
@@ -113,8 +134,19 @@ class UserService:
         return True
 
     @classmethod
-    async def list_users(cls, session: AsyncSession, skip: int = 0, limit: int = 10) -> List[User]:
-        query = select(User).offset(skip).limit(limit)
+    async def list_users(cls, session: AsyncSession, skip: int = 0, limit: int = 10, **filters) -> List[User]:
+        if filters.get('registration_start_date') and filters.get('registration_end_date'):
+            registration_start_date = filters.pop('registration_start_date')
+            registration_end_date = filters.pop('registration_end_date')
+            query = select(User).filter_by(**filters).filter(User.created_at >= registration_start_date, User.created_at <= registration_end_date).offset(skip).limit(limit)
+        elif filters.get('registration_start_date'):
+            registration_start_date = filters.pop('registration_start_date')
+            query = select(User).filter_by(**filters).filter(User.created_at >= registration_start_date).offset(skip).limit(limit)
+        elif filters.get('registration_end_date'):
+            registration_end_date = filters.pop('registration_end_date')
+            query = select(User).filter_by(**filters).filter(User.created_at <= registration_end_date).offset(skip).limit(limit)
+        else:
+            query = select(User).filter_by(**filters).offset(skip).limit(limit)
         result = await cls._execute_query(session, query)
         return result.scalars().all() if result else []
 
@@ -177,7 +209,7 @@ class UserService:
         return False
 
     @classmethod
-    async def count(cls, session: AsyncSession) -> int:
+    async def count(cls, session: AsyncSession, **filters) -> int:
         """
         Count the number of users in the database.
 
@@ -185,6 +217,18 @@ class UserService:
         :return: The count of users.
         """
         query = select(func.count()).select_from(User)
+        if filters.get('registration_start_date') and filters.get('registration_end_date'):
+            registration_start_date = filters.pop('registration_start_date')
+            registration_end_date = filters.pop('registration_end_date')
+            query = select(func.count()).select_from(User).filter_by(**filters).filter(User.created_at >= registration_start_date, User.created_at <= registration_end_date)
+        elif filters.get('registration_start_date'):
+            registration_start_date = filters.pop('registration_start_date')
+            query = select(func.count()).select_from(User).filter_by(**filters).filter(User.created_at >= registration_start_date)
+        elif filters.get('registration_end_date'):
+            registration_end_date = filters.pop('registration_end_date')
+            query = select(func.count()).select_from(User).filter_by(**filters).filter(User.created_at <= registration_end_date)
+        else:
+            query = select(func.count()).select_from(User).filter_by(**filters)
         result = await session.execute(query)
         count = result.scalar()
         return count
